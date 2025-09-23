@@ -5,13 +5,12 @@ import lombok.EqualsAndHashCode;
 
 import java.time.LocalDate;
 
-
 @Data
 @EqualsAndHashCode(of = "id")
-public class Film {
+public class User {
     long id;
     String name;
-    String description;
-    LocalDate releaseDate;
-    Integer duration;
+    String email;
+    String login;
+    LocalDate birthday;
 }
