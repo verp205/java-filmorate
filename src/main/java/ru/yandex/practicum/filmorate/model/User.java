@@ -8,9 +8,9 @@ import java.time.LocalDate;
 @Data
 @EqualsAndHashCode(of = "id")
 public class User {
-    long id;
-    String name;
-    String email;
-    String login;
-    LocalDate birthday;
+    protected long id;
+    protected String name;
+    protected String email;
+    protected String login;
+    protected LocalDate birthday;
 }

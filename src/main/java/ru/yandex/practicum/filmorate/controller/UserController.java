@@ -82,6 +82,7 @@ public class UserController {
                 log.error("Некорректный email при обновлении: {}", user.getEmail());
                 throw new ValidationException("Некорректный email");
             }
+            existingUser.setEmail(user.getEmail());
         }
 
         if (user.getLogin() != null) {
@@ -89,17 +90,13 @@ public class UserController {
                 log.error("Некорректный логин при обновлении: {}", user.getLogin());
                 throw new ValidationException("Некорректный логин");
             }
+            existingUser.setLogin(user.getLogin());
         }
 
-        if (user.getEmail() != null) {
-            existingUser.setEmail(user.getEmail());
-        }
         if (user.getName() != null) {
             existingUser.setName(user.getName());
         }
-        if (user.getLogin() != null) {
-            existingUser.setLogin(user.getLogin());
-        }
+
         if (user.getBirthday() != null) {
             existingUser.setBirthday(user.getBirthday());
         }

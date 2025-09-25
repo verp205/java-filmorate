@@ -1,7 +1,6 @@
 package ru.yandex.practicum.filmorate.controller;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
@@ -13,14 +12,14 @@ import java.util.Map;
 import java.time.LocalDate;
 import java.time.Month;
 
+@Slf4j
 @RestController
 @RequestMapping("/films")
 public class FilmController {
-    public Map<Long, Film> films = new HashMap<>();
+    Map<Long, Film> films = new HashMap<>();
     private static final int MAX_DESCRIPTION_LENGTH = 200;
     private static final LocalDate MIN_DATE = LocalDate.of(1895, Month.DECEMBER, 28);
     private static final int MIN_TIME = 1;
-    private static final Logger log = LoggerFactory.getLogger(FilmController.class);
 
     @GetMapping
     public Collection<Film> getAllFilms() {
@@ -31,15 +30,30 @@ public class FilmController {
     public Film addFilm(@RequestBody Film film) {
         log.info("Попытка добавления фильма: {}", film.getName());
 
+        if (film.getName() == null || film.getName().isBlank()) {
+            log.error("Попытка добавления фильма с пустым названием");
+            throw new ValidationException("Название не может быть пустым!");
+        }
+
+        if (film.getDescription() == null) {
+            log.error("Описание = null");
+            throw new ValidationException("Должно быть описание фильма");
+        }
+
+        if (film.getReleaseDate() == null) {
+            log.error("Дата фильма = null");
+            throw new ValidationException("Дата релиза должна быть заполнена");
+        }
+
+        if (film.getDuration() == null) {
+            log.error("Продолжительность = null");
+            throw new ValidationException("Должна быть указана продолжительность фильма");
+        }
+
         if (film.getReleaseDate().isBefore(MIN_DATE)) {
             log.error("Дата релиза фильма '{}' раньше допустимой: {} < {}",
                     film.getName(), film.getReleaseDate(), MIN_DATE);
             throw new ValidationException("Дата релиза не может быть раньше 28 декабря 1895 года!");
-        }
-
-        if (film.getName() == null || film.getName().isBlank()) {
-            log.error("Попытка добавления фильма с пустым названием");
-            throw new ValidationException("Название не может быть пустым!");
         }
 
         if (film.getDescription().length() > MAX_DESCRIPTION_LENGTH) {
