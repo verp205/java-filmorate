@@ -4,13 +4,28 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.Set;
 
 @Data
 @EqualsAndHashCode(of = "id")
 public class User {
-    protected long id;
-    protected String name;
-    protected String email;
-    protected String login;
-    protected LocalDate birthday;
+    private long id;
+    private String name;
+    private String email;
+    private String login;
+    private LocalDate birthday;
+    private Set<Long> friends = new HashSet<>();
+
+    public void addFriend(long friendId) {
+        friends.add(friendId);
+    }
+
+    public void removeFriend(long friendId) {
+        friends.remove(friendId);
+    }
+
+    public Set<Long> getFriends() {
+        return new HashSet<>(friends);
+    }
 }
