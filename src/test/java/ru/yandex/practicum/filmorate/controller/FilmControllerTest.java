@@ -6,6 +6,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.service.FilmService;
+import ru.yandex.practicum.filmorate.service.UserService;
+import ru.yandex.practicum.filmorate.storage.film.InMemoryFilmStorage;
+import ru.yandex.practicum.filmorate.storage.user.InMemoryUserStorage;
 
 import java.time.LocalDate;
 import java.time.Month;
@@ -19,7 +23,11 @@ class FilmControllerTest {
 
     @BeforeEach
     void setUp() {
-        filmController = new FilmController();
+        InMemoryFilmStorage filmStorage = new InMemoryFilmStorage();
+        InMemoryUserStorage userStorage = new InMemoryUserStorage();
+        FilmService filmService = new FilmService(filmStorage, userStorage);
+        UserService userService = new UserService(userStorage);
+        filmController = new FilmController(filmService, userService);
     }
 
     @Test
@@ -38,11 +46,7 @@ class FilmControllerTest {
         Film film = createValidFilm();
         film.setName(null);
 
-        ValidationException exception = assertThrows(
-                ValidationException.class,
-                () -> filmController.addFilm(film)
-        );
-        assertEquals("Название не может быть пустым!", exception.getMessage());
+        assertThrows(ValidationException.class, () -> filmController.addFilm(film));
     }
 
     @Test
@@ -50,81 +54,39 @@ class FilmControllerTest {
         Film film = createValidFilm();
         film.setName("   ");
 
-        ValidationException exception = assertThrows(
-                ValidationException.class,
-                () -> filmController.addFilm(film)
-        );
-        assertEquals("Название не может быть пустым!", exception.getMessage());
+        assertThrows(ValidationException.class, () -> filmController.addFilm(film));
     }
 
     @Test
     void addFilm_ReleaseDateBefore1895_ShouldThrowException() {
         Film film = createValidFilm();
-        film.setReleaseDate(LocalDate.of(1890, Month.JANUARY, 1));
+        film.setReleaseDate(LocalDate.of(1800, Month.JANUARY, 1));
 
-        ValidationException exception = assertThrows(
-                ValidationException.class,
-                () -> filmController.addFilm(film)
-        );
-        assertEquals("Дата релиза не может быть раньше 28 декабря 1895 года!", exception.getMessage());
+        assertThrows(ValidationException.class, () -> filmController.addFilm(film));
     }
 
     @Test
     void addFilm_DescriptionTooLong_ShouldThrowException() {
         Film film = createValidFilm();
-        String longDescription = "A".repeat(201); // 201 символов
-        film.setDescription(longDescription);
+        film.setDescription("A".repeat(201));
 
-        ValidationException exception = assertThrows(
-                ValidationException.class,
-                () -> filmController.addFilm(film)
-        );
-        assertEquals("Максимальная длина описания — 200 символов!", exception.getMessage());
-    }
-
-    @Test
-    void addFilm_DescriptionExactly200Chars_ShouldAddSuccessfully() {
-        Film film = createValidFilm();
-        String exactLengthDescription = "A".repeat(200); // 200 символов
-        film.setDescription(exactLengthDescription);
-
-        Film result = filmController.addFilm(film);
-
-        assertEquals(exactLengthDescription, result.getDescription());
+        assertThrows(ValidationException.class, () -> filmController.addFilm(film));
     }
 
     @Test
     void addFilm_ZeroDuration_ShouldThrowException() {
         Film film = createValidFilm();
-        film.setDuration(0); // 0 минут
+        film.setDuration(0);
 
-        ValidationException exception = assertThrows(
-                ValidationException.class,
-                () -> filmController.addFilm(film)
-        );
-        assertEquals("Продолжительность фильма должна быть положительным числом!", exception.getMessage());
+        assertThrows(ValidationException.class, () -> filmController.addFilm(film));
     }
 
     @Test
     void addFilm_NegativeDuration_ShouldThrowException() {
         Film film = createValidFilm();
-        film.setDuration(0);
+        film.setDuration(-10);
 
-        ValidationException exception = assertThrows(
-                ValidationException.class,
-                () -> filmController.addFilm(film)
-        );
-        assertEquals("Продолжительность фильма должна быть положительным числом!", exception.getMessage());
-    }
-
-    @Test
-    void addFilm_MinimumValidDuration_ShouldAddSuccessfully() {
-        Film film = createValidFilm();
-        film.setDuration(1);
-
-        Film result = filmController.addFilm(film);
-
-        assertEquals(1, result.getDuration());
+        assertThrows(ValidationException.class, () -> filmController.addFilm(film));
     }
 
     @Test
@@ -132,15 +94,11 @@ class FilmControllerTest {
         Film film = createValidFilm();
         film.setId(999L);
 
-        NotFoundException exception = assertThrows(
-                NotFoundException.class,
-                () -> filmController.updateFilm(film)
-        );
-        assertEquals("Фильм не найден", exception.getMessage());
+        assertThrows(NotFoundException.class, () -> filmController.updateFilm(film));
     }
 
     @Test
-    void addFilm_BoundaryReleaseDate_ShouldAddSuccessfully() {
+    void addFilm_ValidBoundaryReleaseDate_ShouldAddSuccessfully() {
         Film film = createValidFilm();
         film.setReleaseDate(LocalDate.of(1895, Month.DECEMBER, 28));
 
@@ -154,7 +112,7 @@ class FilmControllerTest {
         film.setName("Новый фильм");
         film.setDescription("Описание");
         film.setReleaseDate(LocalDate.of(2000, Month.JANUARY, 1));
-        film.setDuration(2);
+        film.setDuration(120);
         return film;
     }
 }

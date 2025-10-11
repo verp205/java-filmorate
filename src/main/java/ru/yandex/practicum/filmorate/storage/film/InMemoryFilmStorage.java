@@ -20,70 +20,7 @@ public class InMemoryFilmStorage implements FilmStorage {
     private static final int MIN_TIME = 1;
 
     @Override
-    public Film addFilm(long id) {
-        return films.get(id);
-    }
-
-    @Override
-    public Film deleteFilm(long id) {
-        Film deletedFilm = films.remove(id);
-        if (deletedFilm == null) {
-            log.error("Фильм с ID {} не найден для удаления", id);
-            throw new NotFoundException("Фильм не найден");
-        }
-        log.info("Фильм удален: ID {}, название '{}'", id, deletedFilm.getName());
-        return deletedFilm;
-    }
-
-    @Override
-    public Film updateFilm(Film film) {
-        log.info("Попытка обновления фильма: {}", film.getName());
-
-        Film existingFilm = films.get(film.getId());
-        if (existingFilm == null) {
-            log.error("Фильм с ID {} не найден", film.getId());
-            throw new NotFoundException("Фильм не найден");
-        }
-
-        if (film.getName() != null) {
-            if (film.getName().isBlank()) {
-                log.error("Пустое название при обновлении фильма ID: {}", film.getId());
-                throw new ValidationException("Название не может быть пустым");
-            }
-            existingFilm.setName(film.getName());
-        }
-
-        if (film.getDescription() != null) {
-            if (film.getDescription().length() > MAX_DESCRIPTION_LENGTH) {
-                log.error("Слишком длинное описание при обновлении");
-                throw new ValidationException("Описание слишком длинное");
-            }
-            existingFilm.setDescription(film.getDescription());
-        }
-
-        if (film.getReleaseDate() != null) {
-            if (film.getReleaseDate().isBefore(MIN_DATE)) {
-                log.error("Некорректная дата релиза при обновлении");
-                throw new ValidationException("Дата релиза некорректна");
-            }
-            existingFilm.setReleaseDate(film.getReleaseDate());
-        }
-
-        if (film.getDuration() != null) {
-            if (film.getDuration() < MIN_TIME) {
-                log.error("Некорректная продолжительность при обновлении");
-                throw new ValidationException("Продолжительность некорректна");
-            }
-            existingFilm.setDuration(film.getDuration());
-        }
-
-        films.put(existingFilm.getId(), existingFilm);
-        log.info("Фильм обновлен: {}", film.getName());
-        return existingFilm;
-    }
-
-    @Override
-    public Film createFilm(Film film) {
+    public Film addFilm(Film film) {
         log.info("Попытка добавления фильма: {}", film.getName());
 
         // Валидация названия
@@ -135,8 +72,75 @@ public class InMemoryFilmStorage implements FilmStorage {
     }
 
     @Override
+    public Film updateFilm(Film film) {
+        log.info("Попытка обновления фильма: {}", film.getName());
+
+        Film existingFilm = films.get(film.getId());
+        if (existingFilm == null) {
+            log.error("Фильм с ID {} не найден", film.getId());
+            throw new NotFoundException("Фильм не найден");
+        }
+
+        if (film.getName() != null) {
+            if (film.getName().isBlank()) {
+                log.error("Пустое название при обновлении фильма ID: {}", film.getId());
+                throw new ValidationException("Название не может быть пустым");
+            }
+            existingFilm.setName(film.getName());
+        }
+
+        if (film.getDescription() != null) {
+            if (film.getDescription().length() > MAX_DESCRIPTION_LENGTH) {
+                log.error("Слишком длинное описание при обновлении");
+                throw new ValidationException("Описание слишком длинное");
+            }
+            existingFilm.setDescription(film.getDescription());
+        }
+
+        if (film.getReleaseDate() != null) {
+            if (film.getReleaseDate().isBefore(MIN_DATE)) {
+                log.error("Некорректная дата релиза при обновлении");
+                throw new ValidationException("Дата релиза некорректна");
+            }
+            existingFilm.setReleaseDate(film.getReleaseDate());
+        }
+
+        if (film.getDuration() != null) {
+            if (film.getDuration() < MIN_TIME) {
+                log.error("Некорректная продолжительность при обновлении");
+                throw new ValidationException("Продолжительность некорректна");
+            }
+            existingFilm.setDuration(film.getDuration());
+        }
+
+        films.put(existingFilm.getId(), existingFilm);
+        log.info("Фильм обновлен: {}", film.getName());
+        return existingFilm;
+    }
+
+    @Override
+    public Film deleteFilm(long id) {
+        Film deletedFilm = films.remove(id);
+        if (deletedFilm == null) {
+            log.error("Фильм с ID {} не найден для удаления", id);
+            throw new NotFoundException("Фильм не найден");
+        }
+        log.info("Фильм удален: ID {}, название '{}'", id, deletedFilm.getName());
+        return deletedFilm;
+    }
+
+    @Override
     public Map<Long, Film> getAllFilms() {
-        return new HashMap<>(films); // Возвращаем копию для безопасности
+        return new HashMap<>(films);
+    }
+
+    @Override
+    public Film getFilmById(long id) {
+        Film film = films.get(id);
+        if (film == null) {
+            throw new NotFoundException("Фильм с ID " + id + " не найден");
+        }
+        return film;
     }
 
     private long getNextId() {

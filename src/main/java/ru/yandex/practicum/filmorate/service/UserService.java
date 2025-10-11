@@ -7,6 +7,7 @@ import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -15,7 +16,6 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 public class UserService {
-
     private final UserStorage userStorage;
 
     @Autowired
@@ -45,7 +45,6 @@ public class UserService {
 
     public List<User> getFriends(long userId) {
         User user = getUserById(userId);
-
         return user.getFriends().stream()
                 .map(this::getUserById)
                 .collect(Collectors.toList());
@@ -55,22 +54,36 @@ public class UserService {
         User user = getUserById(userId);
         User otherUser = getUserById(otherUserId);
 
-        Set<Long> userFriends = user.getFriends();
-        Set<Long> otherUserFriends = otherUser.getFriends();
+        Set<Long> common = new HashSet<>(user.getFriends());
+        common.retainAll(otherUser.getFriends());
 
-        Set<Long> commonFriendIds = new HashSet<>(userFriends);
-        commonFriendIds.retainAll(otherUserFriends);
-
-        return commonFriendIds.stream()
+        return common.stream()
                 .map(this::getUserById)
                 .collect(Collectors.toList());
     }
 
     private User getUserById(long userId) {
-        User user = userStorage.addUser(userId);
+        User user = userStorage.getAllUsers().get(userId);
         if (user == null) {
             throw new NotFoundException("Пользователь с ID " + userId + " не найден");
         }
         return user;
     }
+
+    public User getUserByIdPublic(long userId) {
+        return getUserById(userId);
+    }
+
+    public User addUser(User user) {
+        return userStorage.addUser(user);
+    }
+
+    public User updateUser(User user) {
+        return userStorage.updateUser(user);
+    }
+
+    public List<User> getAllUsers() {
+        return new ArrayList<>(userStorage.getAllUsers().values());
+    }
+
 }

@@ -17,61 +17,7 @@ public class InMemoryUserStorage implements UserStorage {
     public Map<Long, User> users = new HashMap<>();
 
     @Override
-    public User addUser(long id) {
-        return users.get(id);
-    }
-
-    @Override
-    public User deletUser(long id) {
-        User deletedUser = users.remove(id);
-        if (deletedUser == null) {
-            log.error("Пользователь с ID {} не найден для удаления", id);
-            throw new NotFoundException("Пользователь не найден");
-        }
-        log.info("Пользователь удален: ID {}, логин '{}'", id, deletedUser.getLogin());
-        return deletedUser;
-    }
-
-    @Override
-    public User updateUser(User user) {
-        log.info("Попытка обновления пользователя. login: {}", user.getLogin());
-
-        User existingUser = users.get(user.getId());
-        if (existingUser == null) {
-            log.error("Пользователь с ID {} не найден", user.getId());
-            throw new NotFoundException("Пользователь не найден");
-        }
-
-        if (user.getEmail() != null) {
-            if (user.getEmail().isBlank() || !user.getEmail().contains("@")) {
-                log.error("Некорректный email при обновлении: {}", user.getEmail());
-                throw new ValidationException("Некорректный email");
-            }
-            existingUser.setEmail(user.getEmail());
-        }
-
-        if (user.getLogin() != null) {
-            if (user.getLogin().isBlank() || user.getLogin().contains(" ")) {
-                log.error("Некорректный логин при обновлении: {}", user.getLogin());
-                throw new ValidationException("Некорректный логин");
-            }
-            existingUser.setLogin(user.getLogin());
-        }
-
-        if (user.getName() != null) {
-            existingUser.setName(user.getName());
-        }
-
-        if (user.getBirthday() != null) {
-            existingUser.setBirthday(user.getBirthday());
-        }
-
-        log.info("Пользователь обновлен. login: {}", user.getLogin());
-        return existingUser;
-    }
-
-    @Override
-    public User createUser(User user) {
+    public User addUser(User user) {
         log.info("Попытка создания пользователя: login={}, email={}", user.getLogin(), user.getEmail());
 
         user.setId(getNextId());
@@ -118,8 +64,62 @@ public class InMemoryUserStorage implements UserStorage {
     }
 
     @Override
+    public User updateUser(User user) {
+        log.info("Попытка обновления пользователя. login: {}", user.getLogin());
+
+        User existingUser = users.get(user.getId());
+        if (existingUser == null) {
+            log.error("Пользователь с ID {} не найден", user.getId());
+            throw new NotFoundException("Пользователь не найден");
+        }
+
+        if (user.getEmail() != null) {
+            if (user.getEmail().isBlank() || !user.getEmail().contains("@")) {
+                log.error("Некорректный email при обновлении: {}", user.getEmail());
+                throw new ValidationException("Некорректный email");
+            }
+            existingUser.setEmail(user.getEmail());
+        }
+
+        if (user.getLogin() != null) {
+            if (user.getLogin().isBlank() || user.getLogin().contains(" ")) {
+                log.error("Некорректный логин при обновлении: {}", user.getLogin());
+                throw new ValidationException("Некорректный логин");
+            }
+            existingUser.setLogin(user.getLogin());
+        }
+
+        if (user.getName() != null) {
+            existingUser.setName(user.getName());
+        }
+
+        if (user.getBirthday() != null) {
+            existingUser.setBirthday(user.getBirthday());
+        }
+
+        log.info("Пользователь обновлен. login: {}", user.getLogin());
+        return existingUser;
+    }
+
+    @Override
+    public User deleteUser(long id) {
+        User deletedUser = users.remove(id);
+        if (deletedUser == null) {
+            log.error("Пользователь с ID {} не найден для удаления", id);
+            throw new NotFoundException("Пользователь не найден");
+        }
+        log.info("Пользователь удален: ID {}, логин '{}'", id, deletedUser.getLogin());
+        return deletedUser;
+    }
+
+    @Override
     public Map<Long, User> getAllUsers() {
         return new HashMap<>(users);
+    }
+
+    @Override
+    public User getUserById(long id) {
+        return users.get(id);
     }
 
     private long getNextId() {
