@@ -46,14 +46,14 @@ public class FilmService {
     }
 
     public List<Film> getPopularFilms(int count) {
-        return filmStorage.getAllFilms().values().stream()
+        return filmStorage.getAllFilms().stream()
                 .sorted((f1, f2) -> Integer.compare(f2.getLikes().size(), f1.getLikes().size()))
                 .limit(count)
                 .collect(Collectors.toList());
     }
 
     private Film getFilmById(long filmId) {
-        Film film = filmStorage.getAllFilms().get(filmId);
+        Film film = filmStorage.getFilmById(filmId);
         if (film == null) {
             throw new NotFoundException("Фильм с ID " + filmId + " не найден");
         }
@@ -61,7 +61,7 @@ public class FilmService {
     }
 
     private User getUserById(long userId) {
-        User user = userStorage.getAllUsers().get(userId);
+        User user = userStorage.getUserById(userId);
         if (user == null) {
             throw new NotFoundException("Пользователь с ID " + userId + " не найден");
         }
@@ -81,6 +81,6 @@ public class FilmService {
     }
 
     public List<Film> getAllFilms() {
-        return new ArrayList<>(filmStorage.getAllFilms().values());
+        return new ArrayList<>(filmStorage.getAllFilms());
     }
 }

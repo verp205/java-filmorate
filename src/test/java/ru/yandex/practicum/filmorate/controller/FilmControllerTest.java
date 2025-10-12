@@ -46,6 +46,11 @@ class FilmControllerTest {
         Film film = createValidFilm();
         film.setName(null);
 
+        ValidationException exception = assertThrows(
+                ValidationException.class,
+                () -> filmController.addFilm(film)
+        );
+        assertEquals("Название не может быть пустым!", exception.getMessage());
         assertThrows(ValidationException.class, () -> filmController.addFilm(film));
     }
 

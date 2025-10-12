@@ -63,7 +63,7 @@ public class UserService {
     }
 
     private User getUserById(long userId) {
-        User user = userStorage.getAllUsers().get(userId);
+        User user = userStorage.getUserById(userId);
         if (user == null) {
             throw new NotFoundException("Пользователь с ID " + userId + " не найден");
         }
@@ -83,7 +83,7 @@ public class UserService {
     }
 
     public List<User> getAllUsers() {
-        return new ArrayList<>(userStorage.getAllUsers().values());
+        return new ArrayList<>(userStorage.getAllUsers());
     }
 
 }

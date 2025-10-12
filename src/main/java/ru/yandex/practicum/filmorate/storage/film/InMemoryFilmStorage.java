@@ -8,7 +8,9 @@ import ru.yandex.practicum.filmorate.model.Film;
 
 import java.time.LocalDate;
 import java.time.Month;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Slf4j
@@ -130,8 +132,8 @@ public class InMemoryFilmStorage implements FilmStorage {
     }
 
     @Override
-    public Map<Long, Film> getAllFilms() {
-        return new HashMap<>(films);
+    public List<Film> getAllFilms() {
+        return new ArrayList<>(films.values());
     }
 
     @Override
