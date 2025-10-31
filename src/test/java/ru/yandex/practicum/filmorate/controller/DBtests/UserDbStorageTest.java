@@ -27,24 +27,28 @@ class UserDbStorageTest {
     private final UserDbStorage userStorage;
     private final JdbcTemplate jdbcTemplate;
 
+    private User testUser1;
+    private User testUser2;
+
     @BeforeEach
     void setUp() {
+        // Очистка в правильном порядке
         jdbcTemplate.execute("DELETE FROM friends");
+        jdbcTemplate.execute("DELETE FROM likes");
         jdbcTemplate.execute("DELETE FROM users");
 
-        User user1 = new User();
-        user1.setName("Alice");
-        user1.setEmail("alice@example.com");
-        user1.setLogin("alice123");
-        user1.setBirthday(LocalDate.of(1990, 1, 1));
-        userStorage.addUser(user1);
+        // Создаем тестовых пользователей
+        testUser1 = createTestUser("Alice", "alice@example.com", "alice123", LocalDate.of(1990, 1, 1));
+        testUser2 = createTestUser("Bob", "bob@example.com", "bob123", LocalDate.of(1992, 2, 2));
+    }
 
-        User user2 = new User();
-        user2.setName("Bob");
-        user2.setEmail("bob@example.com");
-        user2.setLogin("bob123");
-        user2.setBirthday(LocalDate.of(1992, 2, 2));
-        userStorage.addUser(user2);
+    private User createTestUser(String name, String email, String login, LocalDate birthday) {
+        User user = new User();
+        user.setName(name);
+        user.setEmail(email);
+        user.setLogin(login);
+        user.setBirthday(birthday);
+        return userStorage.addUser(user);
     }
 
     @Test
@@ -173,13 +177,63 @@ class UserDbStorageTest {
     }
 
     @Test
+    void testAddAndRemoveFriends() {
+        User user1 = userStorage.getAllUsers().get(0);
+        User user2 = userStorage.getAllUsers().get(1);
+
+        // Добавляем друга
+        userStorage.addFriend(user1.getId(), user2.getId());
+
+        // Получаем обновленного пользователя из базы
+        User user1WithFriend = userStorage.getUserById(user1.getId());
+        assertThat(user1WithFriend.getFriends()).hasSize(1);
+        assertThat(user1WithFriend.getFriends()).contains(user2.getId());
+
+        // Удаляем друга
+        userStorage.removeFriend(user1.getId(), user2.getId());
+
+        // Получаем обновленного пользователя из базы
+        User user1WithoutFriend = userStorage.getUserById(user1.getId());
+        assertThat(user1WithoutFriend.getFriends()).isEmpty();
+    }
+
+    @Test
+    void testGetFriends() {
+        User user1 = userStorage.getAllUsers().get(0);
+        User user2 = userStorage.getAllUsers().get(1);
+
+        userStorage.addFriend(user1.getId(), user2.getId());
+
+        List<User> friends = userStorage.getFriends(user1.getId());
+        assertThat(friends).hasSize(1);
+        assertThat(friends.get(0).getId()).isEqualTo(user2.getId());
+    }
+
+    @Test
+    void testGetCommonFriends() {
+        User user1 = userStorage.getAllUsers().get(0);
+        User user2 = userStorage.getAllUsers().get(1);
+
+        // Создаем третьего пользователя
+        User user3 = createTestUser("Charlie", "charlie@example.com", "charlie123", LocalDate.of(1995, 5, 5));
+
+        // user1 и user2 оба дружат с user3
+        userStorage.addFriend(user1.getId(), user3.getId());
+        userStorage.addFriend(user2.getId(), user3.getId());
+
+        List<User> commonFriends = userStorage.getCommonFriends(user1.getId(), user2.getId());
+        assertThat(commonFriends).hasSize(1);
+        assertThat(commonFriends.get(0).getId()).isEqualTo(user3.getId());
+    }
+
+    @Test
     void testUpdateUserRemoveAllFriends() {
         User user1 = userStorage.getAllUsers().get(0);
         User user2 = userStorage.getAllUsers().get(1);
 
-        jdbcTemplate.update("INSERT INTO friends (user_id, friend_id) VALUES (?, ?)",
-                user1.getId(), user2.getId());
+        userStorage.addFriend(user1.getId(), user2.getId());
 
+        // Очищаем друзей через обновление
         user1.getFriends().clear();
         userStorage.updateUser(user1);
 

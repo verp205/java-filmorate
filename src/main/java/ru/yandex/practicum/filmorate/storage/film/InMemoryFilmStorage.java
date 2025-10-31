@@ -145,6 +145,29 @@ public class InMemoryFilmStorage implements FilmStorage {
         return film;
     }
 
+    @Override
+    public void addLike(long filmId, long userId) {
+        log.info("Попытка добавления лайка фильму ID {} от пользователя ID {}", filmId, userId);
+
+        Film film = getFilmById(filmId);
+        film.getLikes().add(userId);
+
+        log.info("Лайк добавлен фильму ID {} от пользователя ID {}", filmId, userId);
+    }
+
+    @Override
+    public void removeLike(long filmId, long userId) {
+        log.info("Попытка удаления лайка фильму ID {} от пользователя ID {}", filmId, userId);
+
+        Film film = getFilmById(filmId);
+        if (!film.getLikes().remove(userId)) {
+            log.warn("Лайк от пользователя ID {} не найден у фильма ID {}", userId, filmId);
+            throw new NotFoundException("Лайк не найден");
+        }
+
+        log.info("Лайк удален фильму ID {} от пользователя ID {}", filmId, userId);
+    }
+
     private long getNextId() {
         long currentMaxId = films.keySet()
                 .stream()
