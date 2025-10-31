@@ -8,6 +8,7 @@ import ru.yandex.practicum.filmorate.model.User;
 
 import java.time.LocalDate;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -51,6 +52,11 @@ public class InMemoryUserStorage implements UserStorage {
             user.setName(user.getLogin());
         }
 
+        // Инициализируем множество друзей, если оно null
+        if (user.getFriends() == null) {
+            user.setFriends(new HashSet<>());
+        }
+
         users.put(user.getId(), user);
         log.info("Пользователь создан успешно. ID: {}, login: {}, email: {}",
                 user.getId(), user.getLogin(), user.getEmail());
@@ -91,6 +97,11 @@ public class InMemoryUserStorage implements UserStorage {
             existingUser.setBirthday(user.getBirthday());
         }
 
+        // Обновляем друзей, если они переданы
+        if (user.getFriends() != null) {
+            existingUser.setFriends(user.getFriends());
+        }
+
         log.info("Пользователь обновлен. login: {}", user.getLogin());
         return existingUser;
     }
@@ -102,6 +113,12 @@ public class InMemoryUserStorage implements UserStorage {
             log.error("Пользователь с ID {} не найден для удаления", id);
             throw new NotFoundException("Пользователь не найден");
         }
+
+        // Удаляем пользователя из списков друзей других пользователей
+        for (User user : users.values()) {
+            user.getFriends().remove(id);
+        }
+
         log.info("Пользователь удален: ID {}, логин '{}'", id, deletedUser.getLogin());
         return deletedUser;
     }
@@ -113,7 +130,74 @@ public class InMemoryUserStorage implements UserStorage {
 
     @Override
     public User getUserById(long id) {
-        return users.get(id);
+        User user = users.get(id);
+        if (user == null) {
+            throw new NotFoundException("Пользователь с ID " + id + " не найден");
+        }
+        return user;
+    }
+
+    @Override
+    public Optional<User> findUserById(long id) {
+        return Optional.ofNullable(users.get(id));
+    }
+
+    @Override
+    public void addFriend(long userId, long friendId) {
+        log.info("Попытка добавления друга: {} -> {}", userId, friendId);
+
+        User user = getUserById(userId);
+        User friend = getUserById(friendId);
+
+        user.getFriends().add(friendId);
+        log.info("Друг добавлен: {} -> {}", userId, friendId);
+    }
+
+    @Override
+    public void removeFriend(long userId, long friendId) {
+        log.info("Попытка удаления друга: {} -> {}", userId, friendId);
+
+        User user = getUserById(userId);
+        User friend = getUserById(friendId);
+
+        if (!user.getFriends().remove(friendId)) {
+            log.warn("Друг с ID {} не найден у пользователя {}", friendId, userId);
+            throw new NotFoundException("Друг не найден");
+        }
+
+        log.info("Друг удален: {} -> {}", userId, friendId);
+    }
+
+    @Override
+    public List<User> getFriends(long userId) {
+        log.info("Запрос списка друзей пользователя: {}", userId);
+
+        User user = getUserById(userId);
+        List<User> friends = user.getFriends().stream()
+                .map(this::getUserById)
+                .collect(Collectors.toList());
+
+        log.info("Найдено друзей у пользователя {}: {}", userId, friends.size());
+        return friends;
+    }
+
+    @Override
+    public List<User> getCommonFriends(long userId1, long userId2) {
+        log.info("Запрос общих друзей пользователей: {} и {}", userId1, userId2);
+
+        User user1 = getUserById(userId1);
+        User user2 = getUserById(userId2);
+
+        Set<Long> commonFriendIds = new HashSet<>(user1.getFriends());
+        commonFriendIds.retainAll(user2.getFriends());
+
+        List<User> commonFriends = commonFriendIds.stream()
+                .map(this::getUserById)
+                .collect(Collectors.toList());
+
+        log.info("Найдено общих друзей у пользователей {} и {}: {}",
+                userId1, userId2, commonFriends.size());
+        return commonFriends;
     }
 
     private long getNextId() {
