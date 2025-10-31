@@ -18,11 +18,14 @@ public class User {
     private Set<Long> friends = new HashSet<>();
     private String friendStatus;
 
+
     public void addFriend(long friendId) {
         friends.add(friendId);
     }
-
     public void removeFriend(long friendId) {
         friends.remove(friendId);
+    }
+    public Set<Long> getFriends() {
+        return new HashSet<>(friends);
     }
 }
