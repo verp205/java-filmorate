@@ -9,7 +9,8 @@ import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Genre;
 
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -49,5 +50,44 @@ public class GenreDbStorage implements GenreStorage {
         }
 
         return genres.get(0);
+    }
+
+    private Set<Genre> getFilmGenres(Long filmId) {
+        String sql = "SELECT g.genre_id, g.genre_name " +
+                "FROM film_genres fg " +
+                "JOIN genres g ON fg.genre_id = g.genre_id " +
+                "WHERE fg.film_id = ? " +
+                "ORDER BY g.genre_id";
+        List<Genre> genres = jdbcTemplate.query(sql, genreRowMapper, filmId);
+        return new LinkedHashSet<>(genres);
+    }
+
+    @Override
+    public Map<Long, Set<Genre>> getGenresForFilms(List<Long> filmIds) {
+        if (filmIds.isEmpty()) {
+            return new HashMap<>();
+        }
+
+        String inClause = filmIds.stream()
+                .map(id -> "?")
+                .collect(Collectors.joining(","));
+
+        String sql = "SELECT fg.film_id, g.genre_id, g.genre_name " +
+                "FROM film_genres fg " +
+                "JOIN genres g ON fg.genre_id = g.genre_id " +
+                "WHERE fg.film_id IN (" + inClause + ") " +
+                "ORDER BY fg.film_id, g.genre_id";
+
+        return jdbcTemplate.query(sql, filmIds.toArray(), rs -> {
+            Map<Long, Set<Genre>> result = new HashMap<>();
+            while (rs.next()) {
+                Long filmId = rs.getLong("film_id");
+                long genreId = rs.getLong("genre_id");
+                String genreName = rs.getString("genre_name");
+                Genre genre = new Genre(genreId, genreName);
+                result.computeIfAbsent(filmId, k -> new LinkedHashSet<>()).add(genre);
+            }
+            return result;
+        });
     }
 }

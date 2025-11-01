@@ -18,7 +18,9 @@ import ru.yandex.practicum.filmorate.storage.user.UserDbStorage;
 
 import java.time.LocalDate;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -87,9 +89,9 @@ public class FilmDbStorageTest {
         }
 
         if (genreIds != null && !genreIds.isEmpty()) {
-            List<Genre> genres = genreIds.stream()
+            Set<Genre> genres = genreIds.stream()
                     .map(genreDbStorage::getGenreById)
-                    .collect(Collectors.toList());
+                    .collect(Collectors.toSet()); // Исправлено: collect to Set
             film.setGenres(genres);
         }
 
@@ -116,8 +118,13 @@ public class FilmDbStorageTest {
         assertEquals("G", retrievedFilm.getMpa().getName());
 
         assertEquals(2, retrievedFilm.getGenres().size());
-        assertEquals(Arrays.asList(1L, 2L),
-                retrievedFilm.getGenres().stream().map(Genre::getId).collect(Collectors.toList()));
+
+        // Исправлено: проверка через stream
+        Set<Long> genreIds = retrievedFilm.getGenres().stream()
+                .map(Genre::getId)
+                .collect(Collectors.toSet());
+        assertTrue(genreIds.contains(1L));
+        assertTrue(genreIds.contains(2L));
     }
 
     @Test
@@ -162,20 +169,34 @@ public class FilmDbStorageTest {
         List<Film> films = filmDbStorage.getAllFilms();
         assertEquals(2, films.size());
 
-        Film firstFilm = films.get(0);
+        // Исправлено: поиск фильмов по имени, так как порядок в Set не гарантирован
+        Film firstFilm = films.stream()
+                .filter(f -> f.getName().equals("Film 1"))
+                .findFirst()
+                .orElseThrow();
         assertEquals("Film 1", firstFilm.getName());
         assertNotNull(firstFilm.getMpa());
         assertEquals(1L, firstFilm.getMpa().getId());
         assertEquals(1, firstFilm.getGenres().size());
-        assertEquals(1L, firstFilm.getGenres().get(0).getId());
 
-        Film secondFilm = films.get(1);
+        // Исправлено: получение первого элемента из Set
+        Genre firstGenre = firstFilm.getGenres().iterator().next();
+        assertEquals(1L, firstGenre.getId());
+
+        Film secondFilm = films.stream()
+                .filter(f -> f.getName().equals("Film 2"))
+                .findFirst()
+                .orElseThrow();
         assertEquals("Film 2", secondFilm.getName());
         assertNotNull(secondFilm.getMpa());
         assertEquals(2L, secondFilm.getMpa().getId());
         assertEquals(2, secondFilm.getGenres().size());
-        assertEquals(Arrays.asList(2L, 3L),
-                secondFilm.getGenres().stream().map(Genre::getId).collect(Collectors.toList()));
+
+        Set<Long> secondFilmGenreIds = secondFilm.getGenres().stream()
+                .map(Genre::getId)
+                .collect(Collectors.toSet());
+        assertTrue(secondFilmGenreIds.contains(2L));
+        assertTrue(secondFilmGenreIds.contains(3L));
     }
 
     @Test
@@ -192,7 +213,12 @@ public class FilmDbStorageTest {
         film.setName("New Name");
         film.setDuration(95);
         film.setMpa(mpaRatingDbStorage.getMpaById(4L));
-        film.setGenres(Arrays.asList(genreDbStorage.getGenreById(4L), genreDbStorage.getGenreById(5L)));
+
+        // Исправлено: создание Set вместо List
+        film.setGenres(new HashSet<>(Arrays.asList(
+                genreDbStorage.getGenreById(4L),
+                genreDbStorage.getGenreById(5L)
+        )));
         filmDbStorage.updateFilm(film);
 
         Film updatedFilm = filmDbStorage.getFilmById(film.getId());
@@ -201,8 +227,12 @@ public class FilmDbStorageTest {
         assertNotNull(updatedFilm.getMpa());
         assertEquals(4L, updatedFilm.getMpa().getId());
         assertEquals(2, updatedFilm.getGenres().size());
-        assertEquals(Arrays.asList(4L, 5L),
-                updatedFilm.getGenres().stream().map(Genre::getId).collect(Collectors.toList()));
+
+        Set<Long> updatedGenreIds = updatedFilm.getGenres().stream()
+                .map(Genre::getId)
+                .collect(Collectors.toSet());
+        assertTrue(updatedGenreIds.contains(4L));
+        assertTrue(updatedGenreIds.contains(5L));
     }
 
     @Test
@@ -273,10 +303,19 @@ public class FilmDbStorageTest {
         filmDbStorage.addLike(film.getId(), testUser1.getId());
         filmDbStorage.addLike(film.getId(), testUser2.getId());
 
-        Film filmWithLikes = filmDbStorage.getFilmById(film.getId());
-        assertEquals(2, filmWithLikes.getLikes().size());
-        assertTrue(filmWithLikes.getLikes().contains(testUser1.getId()));
-        assertTrue(filmWithLikes.getLikes().contains(testUser2.getId()));
+        // Проверяем, что лайки добавились в таблицу likes
+        Integer likeCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM likes WHERE film_id = ?",
+                Integer.class, film.getId());
+        assertEquals(2, likeCount);
+
+        // Проверяем конкретные лайки
+        List<Long> userIds = jdbcTemplate.queryForList(
+                "SELECT user_id FROM likes WHERE film_id = ? ORDER BY user_id",
+                Long.class, film.getId());
+        assertEquals(2, userIds.size());
+        assertTrue(userIds.contains(testUser1.getId()));
+        assertTrue(userIds.contains(testUser2.getId()));
     }
 
     @Test
@@ -298,13 +337,20 @@ public class FilmDbStorageTest {
 
         // Добавляем лайк
         filmDbStorage.addLike(film.getId(), testUser1.getId());
-        Film filmAfterLike = filmDbStorage.getFilmById(film.getId());
-        assertEquals(1, filmAfterLike.getLikes().size());
-        assertTrue(filmAfterLike.getLikes().contains(testUser1.getId()));
+
+        // Проверяем, что лайк добавился в таблицу
+        Integer likeCountAfterAdd = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM likes WHERE film_id = ? AND user_id = ?",
+                Integer.class, film.getId(), testUser1.getId());
+        assertEquals(1, likeCountAfterAdd);
 
         // Удаляем лайк
         filmDbStorage.removeLike(film.getId(), testUser1.getId());
-        Film filmAfterRemove = filmDbStorage.getFilmById(film.getId());
-        assertEquals(0, filmAfterRemove.getLikes().size());
+
+        // Проверяем, что лайк удалился из таблицы
+        Integer likeCountAfterRemove = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM likes WHERE film_id = ? AND user_id = ?",
+                Integer.class, film.getId(), testUser1.getId());
+        assertEquals(0, likeCountAfterRemove);
     }
 }

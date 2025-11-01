@@ -25,8 +25,4 @@ public class User {
     public void removeFriend(long friendId) {
         friends.remove(friendId);
     }
-
-    public Set<Long> getFriends() {
-        return new HashSet<>(friends);
-    }
 }

@@ -21,4 +21,14 @@ public class InMemoryGenreStorage implements GenreStorage {
     public Genre getGenreById(long id) {
         return genres.get(id);
     }
+
+    @Override
+    public Map<Long, Set<Genre>> getGenresForFilms(List<Long> filmIds) {
+        log.info("Получение жанров для фильмов: {}", filmIds);
+        Map<Long, Set<Genre>> result = new HashMap<>();
+        for (Long filmId : filmIds) {
+            result.put(filmId, Collections.emptySet());
+        }
+        return result;
+    }
 }

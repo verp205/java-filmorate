@@ -8,15 +8,14 @@ import ru.yandex.practicum.filmorate.model.Film;
 
 import java.time.LocalDate;
 import java.time.Month;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Component
 public class InMemoryFilmStorage implements FilmStorage {
     private Map<Long, Film> films = new HashMap<>();
+    private Map<Long, Set<Long>> likes = new HashMap<>();
     private static final int MAX_DESCRIPTION_LENGTH = 200;
     private static final LocalDate MIN_DATE = LocalDate.of(1895, Month.DECEMBER, 28);
     private static final int MIN_TIME = 1;
@@ -166,6 +165,18 @@ public class InMemoryFilmStorage implements FilmStorage {
         }
 
         log.info("Лайк удален фильму ID {} от пользователя ID {}", filmId, userId);
+    }
+
+    @Override
+    public List<Film> getPopularFilms(int count) {
+        return films.values().stream()
+                .sorted((f1, f2) -> {
+                    int likes1 = likes.getOrDefault(f1.getId(), Collections.emptySet()).size();
+                    int likes2 = likes.getOrDefault(f2.getId(), Collections.emptySet()).size();
+                    return Integer.compare(likes2, likes1);
+                })
+                .limit(count)
+                .collect(Collectors.toList());
     }
 
     private long getNextId() {
