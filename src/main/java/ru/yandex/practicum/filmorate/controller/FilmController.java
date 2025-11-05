@@ -3,9 +3,10 @@ package ru.yandex.practicum.filmorate.controller;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
+import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.service.FilmService;
-import ru.yandex.practicum.filmorate.service.UserService;
 
 import java.util.Collection;
 import java.util.List;
@@ -17,7 +18,6 @@ import java.util.List;
 public class FilmController {
 
     private final FilmService filmService;
-    private final UserService userService;
 
     @GetMapping
     public Collection<Film> getAllFilms() {
@@ -34,12 +34,17 @@ public class FilmController {
     @PostMapping
     public Film addFilm(@RequestBody Film film) {
         log.info("Запрос на добавление фильма: {}", film.getName());
+        validateFilmBasic(film);
         return filmService.addFilm(film);
     }
 
     @PutMapping
     public Film updateFilm(@RequestBody Film film) {
-        log.info("Запрос на обновление фильма с ID {}", film.getId());
+        Film existingFilm = filmService.getFilmByIdPublic(film.getId());
+        if (existingFilm == null) {
+            throw new NotFoundException("Фильм с ID " + film.getId() + " не найден");
+        }
+        validateFilmBasic(film);
         return filmService.updateFilm(film);
     }
 
@@ -59,5 +64,23 @@ public class FilmController {
     public List<Film> getPopularFilms(@RequestParam(defaultValue = "10") int count) {
         log.info("Запрос на получение {} популярных фильмов", count);
         return filmService.getPopularFilms(count);
+    }
+
+    private void validateFilmBasic(Film film) {
+        if (film.getName() == null || film.getName().isBlank()) {
+            throw new ValidationException("Название не может быть пустым!");
+        }
+        if (film.getDescription() != null && film.getDescription().length() > 200) {
+            throw new ValidationException("Описание не может быть длиннее 200 символов!");
+        }
+        if (film.getDuration() == null || film.getDuration() <= 0) {
+            throw new ValidationException("Продолжительность фильма должна быть положительной!");
+        }
+        if (film.getReleaseDate() == null) {
+            throw new ValidationException("Дата релиза не может быть пустой!");
+        }
+        if (film.getReleaseDate().isBefore(java.time.LocalDate.of(1895, 12, 28))) {
+            throw new ValidationException("Дата релиза не может быть раньше 28 декабря 1895 года");
+        }
     }
 }
