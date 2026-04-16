@@ -1,57 +1,66 @@
-# java-filmorate
-Репозиторий приложения filmorate
+# Filmorate 🎬 — Твой личный топ фильмов
 
-## ER-диаграмма
+**Filmorate** — это сервис, который помогает пользователям выбирать кино на вечер. Здесь можно ставить лайки фильмам, добавлять друзей и смотреть списки самых популярных новинок.
+
+Проект реализован как RESTful приложение на стеке Spring Boot с использованием реляционной базы данных для надежного хранения данных.
+
+---
+
+### 🛠️ Технологический стек
+
+* **Core:** Java 11+, Spring Boot.
+* **Data:** JDBC, H2 (In-memory database), PostgreSQL (через профили).
+* **Validation:** Spring Boot Starter Validation (аннотации для проверки входных данных).
+* **Lombok:** Для уменьшения шаблонного кода.
+* **Testing:** JUnit, Mockito, интеграционные тесты БД.
+
+---
+
+### 🏗️ Структура базы данных
+
+В основе проекта лежит проработанная схема БД. Ниже представлена ER-диаграмма связей:
+
 ![ER-диаграмма базы данных Filmorate](filmorate-database.png)
 
-## Описание базы-данных
-### Основные сущности и их назначение
-- **users** — данные пользователей (id, имя, email, логин, дата рождения и т.п.).
-- **films** — информация о фильмах (id, название, описание, дата выхода, продолжительность, ссылка на рейтинг MPA).
-- **genres** — справочник жанров.
-- **film_genres** — связь M:N между фильмами и жанрами (film_id, genre_id).
-- **mpa_ratings** — справочник рейтингов (G, PG, PG-13 и т.д.).
-- **likes** — записи о том, что пользователь лайкнул фильм; реализована как M:N
-- **friends / friendships** — таблица дружбы между пользователями с полем статуса
+**Ключевые сущности:**
+* `users` — профили пользователей.
+* `films` — каталог фильмов с описанием и рейтингом MPA.
+* `likes` — связь между пользователями и их предпочтениями.
+* `friends` — социальный граф пользователей (система дружбы).
+* `genres` — классификация фильмов.
 
-## Примеры запросов
-- Вывести количество лайков
-```sql
-SELECT COUNT(*) AS likes_count
-FROM likes;
-```
+---
 
-- Получить список всех пользователей
-```sql
-SELECT user_id, name, email, login, birthday
-FROM users
-ORDER BY user_id;
-```
+### 🚀 Функционал API
 
-- Подсчитать количество лайков у фильма
-```sql
-SELECT f.name, COUNT(l.user_id) AS likes_count
-FROM films f
-LEFT JOIN likes l ON f.film_id = l.film_id
-WHERE f.film_id = 3
-GROUP BY f.name;
-```
+#### 🎞️ Фильмы:
+- Добавление, обновление и просмотр информации о фильмах.
+- Система лайков: ставьте отметки «Мне нравится» и убирайте их.
+- Топ-лист: получение списка самых популярных фильмов по количеству лайков.
 
-- Получить список друзей пользователя
-```sql
-SELECT u.user_id, u.name, u.email
-FROM friends f
-JOIN users u ON u.user_id = f.friend_id
-WHERE f.user_id = 1
-AND f.friend_status = 'ACCEPTED';
-```
+#### 👥 Пользователи:
+- Создание профиля и редактирование данных.
+- Список друзей: добавляйте других пользователей в друзья.
+- Общие друзья: находите точки соприкосновения с другими пользователями.
 
-- Найти фильмы определённого жанра (например, "Комедия")
-```sql
-SELECT f.name, f.release_date
-FROM films f
-JOIN film_genres fg ON f.film_id = fg.film_id
-JOIN genres g ON fg.genre_id = g.genre_id
-WHERE g.genre_name = 'Комедия'
-ORDER BY f.release_date DESC;
-```
+---
+
+### 📂 Примеры SQL-запросов
+
+В проекте используются оптимизированные запросы для работы с данными:
+
+* **Поиск друзей пользователя:**
+  ```sql
+  SELECT u.name, u.email FROM users u 
+  JOIN friends f ON u.user_id = f.friend_id 
+  WHERE f.user_id = 1;
+  ```
+* **Топ-10 самых популярных фильмов:**
+  ```sql
+  SELECT f.name, COUNT(l.user_id) AS likes_count 
+  FROM films f LEFT JOIN likes l ON f.film_id = l.film_id 
+  GROUP BY f.name ORDER BY likes_count DESC LIMIT 10;
+  ```
+
+---
+**Разработчик:** [Иван Науменко](https://t.me/VoussOfficial) 🚀
